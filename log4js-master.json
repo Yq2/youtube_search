@@ -1,0 +1,28 @@
+{
+    "appenders": [
+        {
+            "type": "clustered",
+            "appenders": [
+                {
+                    "type": "console"
+                },
+                {
+                    "type": "dateFile",
+                    "filename": "./logs/normal/normal.log",
+                    "pattern": "-yyyy-MM-dd",
+                    "alwaysIncludePattern": true,
+                    "pollInterval": 1,
+                    "category": "normal"
+                },
+                {
+                    "type": "dateFile",
+                    "filename": "./logs/error/error.log",
+                    "pattern": "-yyyy-MM-dd",
+                    "alwaysIncludePattern": true,
+                    "pollInterval": 1,
+                    "category": "error"
+                }
+            ]
+        }
+    ]
+}

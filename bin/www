@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+var debug = require('debug')('youtube-search:server');
+var app = require('../app');
+var http = require('http');
+var cluster = require('cluster');
+var os = require('os');
+var log4js = require("../log");
+var setting=require("../setting");
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || setting.port);
+app.set('port', port);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+var numCPUs = os.cpus().length;
+var workers = {};
+if (cluster.isMaster) {
+
+    log4js.configure("master");
+    cluster.on('exit', function(worker, code, signal) {
+        console.log('worker ' + worker.process.pid + ' died');
+        delete workers[worker.process.pid];
+        worker = cluster.fork();
+        workers[worker.process.pid] = worker;
+    });
+
+    // for (var i = 0; i < numCPUs; i++) {
+    //     var worker = cluster.fork();
+    //     workers[worker.process.pid] = worker;
+    // }
+
+    for (var i = 0; i < 1; i++) {
+        var worker = cluster.fork();
+        workers[worker.process.pid] = worker;
+    }
+
+} else {
+    /**
+     * Create HTTP server.
+     */
+    log4js.configure("worker");
+
+//app.use(log4js.useLog());
+
+    var server = http.createServer(app);
+    server.listen(port);
+    server.on('error', onError);
+    server.on('listening', onListening);
+}
+
+process.on('SIGTERM', function () {
+    for (var pid in workers) {
+        process.kill(pid);
+        console.log('kill worker, pid:' + worker.process.pid);
+    }
+    process.exit(0);
+});
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+    var port = parseInt(val, 10);
+
+    if (isNaN(port)) {
+        // named pipe
+        return val;
+    }
+
+    if (port >= 0) {
+        // port number
+        return port;
+    }
+
+    return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
+
+    var bind = typeof port === 'string'
+        ? 'Pipe ' + port
+        : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+        case 'EACCES':
+            console.error(bind + ' requires elevated privileges');
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            console.error(bind + ' is already in use');
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+}
